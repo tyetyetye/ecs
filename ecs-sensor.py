@@ -11,13 +11,13 @@ class environment:
     def __init__(self):
         self.log_d('Starting ECS Sensor Daemon...')
         self.read_config()
+        self.db_chk()
         self.create_tables()
         self.temp = None
         self.rh = None
-        # Check if db connection is successful for logging purposes
-        self.db_chk()
 
     def db_chk(self):
+        # Check if db connection is successful for logging purposes
         self.log_d('Trying to connect to MariaDB database on ' + self.db_host + '...')
         try:
             conn = mariadb.connect(
@@ -28,10 +28,8 @@ class environment:
                 database = self.db_database
             )
             self.log_d('Connection to MariaDB is succesful!')
-            return True
         except mariadb.Error as e:
             self.err_l(e)
-            return False
 
     # log message to daemon log
     def log_d(self, log_m):
@@ -104,7 +102,6 @@ class environment:
 
         except mariadb.Error as e:
             self.err_l(e)
-            return False
 
     def read(self):
         # get env readings
