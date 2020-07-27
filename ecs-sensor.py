@@ -5,8 +5,6 @@ from pi_sht1x import SHT1x
 from datetime import datetime
 import configparser, time, mariadb, syslog
 
-data_pin = 2
-sck_pin = 3
 config_file = '/opt/ecs/ecs-sensor.ini'
 
 class environment:
@@ -48,7 +46,7 @@ class environment:
     def read_config(self):
         config = configparser.ConfigParser()
         config.read(config_file)
-        self.sense_t = float(config['Sensor']['Rate'])
+        self.sense_t = int(config['Sensor']['Rate'])
         self.data_pin = int(config['Sensor']['DataPin'])
         self.sck_pin = int(config['Sensor']['SckPin'])
         self.db_database = config['Database']['Database']
@@ -69,9 +67,8 @@ class environment:
             cur = conn.cursor()
 	    # drop tables for testing purposes
             #cur.execute('''DROP TABLE environment;''')
-            #cur.execute('''DROP TABLE onoff''')
+            #cur.execute('''DROP TABLE onoff;''')
             #cur.execute('''DROP TABLE device;''')
-
 
             # create device table
             cur.execute('''CREATE TABLE IF NOT EXISTS device
@@ -139,21 +136,16 @@ class environment:
             if(self.read()):
                 cur.execute('''INSERT INTO environment VALUES (?, ?, ?)''',
                         (time_now, self.rh, self.temp))
-
-                #print("%s: Temperature: %f" % (time_now, self.temp))
-                #print("%s: Relative Humidity: %f" % (time_now, self.rh))
             conn.close()
 
         except mariadb.Error as e:
             self.err_l(e)
-            return False
 
 def main():
     env = environment()
     while True:
         # re-read config to allow configuration changes without restarting daemon
         env.read_config()
-        # create initial environment table write
         env.write()
         time.sleep(env.sense_t)
 
