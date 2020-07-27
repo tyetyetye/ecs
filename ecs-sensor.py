@@ -7,7 +7,7 @@ import configparser, time, mariadb, syslog
 
 data_pin = 2
 sck_pin = 3
-config_file = 'ecs-sensor.ini'
+config_file = '/opt/ecs/ecs-sensor.ini'
 
 class environment:
     def __init__(self):
