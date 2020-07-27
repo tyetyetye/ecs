@@ -7,8 +7,7 @@ import configparser, time, mariadb, syslog
 
 data_pin = 2
 sck_pin = 3
-config_file = '/home/jtye/ecs/ecs.ini'
-#config_file = '/opt/ecs/ecs.ini'
+config_file = 'ecs-sensor.ini'
 
 class environment:
     def __init__(self):
@@ -69,9 +68,9 @@ class environment:
             )
             cur = conn.cursor()
 	    # drop tables for testing purposes
-            cur.execute('''DROP TABLE environment;''')
-            cur.execute('''DROP TABLE onoff''')
-            cur.execute('''DROP TABLE device;''')
+            #cur.execute('''DROP TABLE environment;''')
+            #cur.execute('''DROP TABLE onoff''')
+            #cur.execute('''DROP TABLE device;''')
 
 
             # create device table
