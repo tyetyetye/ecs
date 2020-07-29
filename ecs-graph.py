@@ -11,7 +11,7 @@ class ecs_graph:
         self.get_dataframe()
 
     def read_config(self):
-        config_file = 'ecs-sensor.ini'
+        config_file = 'ecs.ini'
         config = configparser.ConfigParser()
         config.read(config_file)
         self.db_info = {
@@ -40,40 +40,38 @@ class ecs_graph:
         df.rename(columns={0: 'DateTime', 1: 'Humidity', 2: 'Temperature'}, inplace=True)
         self.dataframe_transform(df)
 
-    def dataframe_transform(self, df):
+    def dataframe_transform(self, dataframe):
         for t in self.df_t:
-            df2 = df
-            if ("H" or "min") in t:
-                df2['HourDatetime'] = pd.to_datetime(df2['DateTime'], format='%Y-%m-%d %H:%M:%S').dt.time
-                df2['Hour'] = df2['HourDatetime'].map(lambda ts: ts.strftime("%I:%M %p"))
-                df2 = df2.set_index(['DateTime'])
-                df2 = df2.last(t)
-                df2 = df2.set_index(['Hour'])
+            df = dataframe
+            if "min" in t:
+                df['Minute'] = df['DateTime'].map(lambda ts: ts.strftime("%I:%M %p"))
+                df = df.set_index(['DateTime'])
+                df = df.last(t)
+                df = df.set_index(['Minute'])
+            if "H" in t:
+                df['HourDatetime'] = pd.to_datetime(df['DateTime'], format='%Y-%m-%d %H:%M:%S').dt.time
+                df['Hour'] = df['HourDatetime'].map(lambda ts: ts.strftime("%I:%M %p"))
+                df = df.set_index(['DateTime'])
+                df = df.last(t)
+                df = df.set_index(['Hour'])
             if "D" in t:
-                df2['Day'] = df2['DateTime'].map(lambda ts: ts.strftime("%m-%d %I:%M %p"))
-                df2 = df2.set_index(['DateTime'])
-                df2 = df2.last(t)
-                df2 = df2.set_index(['Day'])
-            self.plot_dataframe(df2, t)
+                df['Day'] = df['DateTime'].map(lambda ts: ts.strftime("%m-%d %I:%M %p"))
+                df = df.set_index(['DateTime'])
+                df = df.last(t)
+                df = df.set_index(['Day'])
+            self.plot_dataframe(df, t)
 
     def plot_dataframe(self, df, t):
-        fig, ax = plt.subplots(figsize = (16,12))
-        ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-        ax.plot(df['Humidity'])
-        fig.suptitle(t + ' - Humidity', fontsize=20)
-        plt.xlabel('Time', fontsize=18)
-        plt.ylabel('Relative Humidity', fontsize=16)
-        plt.savefig(t + '_humidity.png')
-        return
-        plt.clf()
-
-        fig, ax = plt.subplots(figsize = (16,12))
-        ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-        ax.plot(df['Temperature'])
-        fig.suptitle(t + ' - Temperature', fontsize=20)
-        plt.xlabel('Time', fontsize=18)
-        plt.ylabel('Temperature', fontsize=16)
-        plt.savefig(t + '_temperature')
+        metrics = ['Humidity', 'Temperature']
+        for metric in metrics:
+            fig, ax = plt.subplots(figsize = (16,12))
+            ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+            ax.plot(df[metric])
+            fig.suptitle(t + ' - ' + metric, fontsize=20)
+            plt.xlabel('Time', fontsize=16)
+            plt.ylabel(metric, fontsize=16)
+            plt.savefig('./images/' + t + '_' + metric + '.png')
+            plt.clf()
 
 def main():
     gr = ecs_graph()

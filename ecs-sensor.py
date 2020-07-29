@@ -5,7 +5,7 @@ from pi_sht1x import SHT1x
 from datetime import datetime
 import configparser, time, mariadb, syslog
 
-config_file = '/opt/ecs/ecs-sensor.ini'
+config_file = '/opt/ecs/ecs.ini'
 
 class environment:
     def __init__(self):
