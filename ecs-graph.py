@@ -73,6 +73,9 @@ class ecs_graph:
             for metric in metrics:
                 # set size of figure
                 fig, ax = plt.subplots(figsize = (self.plot_d['size_x'], self.plot_d['size_y']), tight_layout=True)
+                # set figure title
+                fig.suptitle(t + ' - ' + metric, fontsize=self.plot_d['sup_size'])
+                # timescale formatting
                 if "D" in t:
                     dayFmt = mdates.DateFormatter("%m-%d")
                     hourFmt = mdates.DateFormatter("\n\n%-I:%M %p")
@@ -87,13 +90,23 @@ class ecs_graph:
                     minuteFmt = mdates.DateFormatter("\n\n%-I:%M %p")
                     ax.xaxis.set_major_locator(mdates.HourLocator())
                     ax.xaxis.set_major_formatter(hourFmt)
-                    n = round(int(t.split("H")[0])*2)
+                    n = int(t.split("H")[0])*2
                     ax.xaxis.set_minor_locator(mdates.MinuteLocator(byminute=range(0,60,n)))
                     ax.xaxis.set_minor_formatter(minuteFmt)
                 if "min" in t:
                     minuteFmt = mdates.DateFormatter("%-I:%M %p")
-                    ax.xaxis.set_major_locator(mdates.MinuteLocator())
+                    secondFmt = mdates.DateFormatter("\n\n%-I:%M:%S %p")
+                    # if minutes is too small minute/8 (for 8 major ticks) will equal 0
+                    n = 0
+                    m = 8
+                    while n == 0:
+                        n = round(int(t.split("min")[0])/m)
+                        m = m/2
+                    ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=range(0,60,round(n))))
                     ax.xaxis.set_major_formatter(minuteFmt)
+                    n = int(t.split("min")[0])*2
+                    ax.xaxis.set_minor_locator(mdates.SecondLocator(bysecond=range(0,60,n)))
+                    ax.xaxis.set_minor_formatter(secondFmt)
                 # color by metric
                 if(metric == 'Humidity'):
                     l_color = self.plot_d['humidity_color']
@@ -102,26 +115,20 @@ class ecs_graph:
                     l_color = self.plot_d['temperature_color']
                 # plot axes
                 ax.plot(df[metric], linewidth=2.0, ls='solid', color=l_color)
-                # set figure title
-                fig.suptitle(t + ' - ' + metric, fontsize=self.plot_d['sup_size'])
+                # set xtick properties
+                plt.setp(ax.get_xticklabels(minor='minor'), rotation=self.plot_d['tick_label_rotation'],
+                             ha='right', size=self.plot_d['x_tick_size'])
+                plt.setp(ax.get_xticklabels(which='major'), size=self.plot_d['major_tick_size'])
+                ax.get_xaxis().set_tick_params(which='both', direction='in')
+                ax.get_yaxis().set_tick_params(which='both', direction='in')
                 # Set x/y label
                 #plt.xlabel('Time', fontsize=self.plot_d['x_label_size'], labelpad=20)
                 plt.ylabel(metric, fontsize=self.plot_d['y_label_size'], labelpad=20)
-                # set xtick properties
-                # minutes doesn't need minor ticks
-                if "min" in t:
-                    plt.setp(ax.get_xticklabels(which='major'), rotation=self.plot_d['tick_label_rotation'],
-                             ha='right', rotation_mode="anchor", size=self.plot_d['x_tick_size'])
-                else:
-                    plt.setp(ax.get_xticklabels(minor='minor'), rotation=self.plot_d['tick_label_rotation'],
-                             ha='right', rotation_mode="anchor", size=self.plot_d['x_tick_size'])
-                    plt.setp(ax.get_xticklabels(which='major'), size=self.plot_d['major_tick_size'])
-                ax.get_xaxis().set_tick_params(which='both', direction='in')
-                ax.get_yaxis().set_tick_params(which='both', direction='in')
                 # show grid
                 plt.grid(which='major', linewidth=3)
                 plt.grid(which='minor', linewidth=1)
                 plt.savefig('./images/' + t + '_' + metric + '.png')
+                #plt.show()
                 plt.clf()
 
 def main():
