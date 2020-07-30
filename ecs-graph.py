@@ -46,6 +46,7 @@ class ecs_graph:
             port = self.db_d['port']
         )
         cur = conn.cursor()
+        # TODO select LIMIT so whole database isn't pulled
         cur.execute('select datetime, humidity, temp from environment')
         rows = cur.fetchall()
         if rows:
@@ -54,9 +55,11 @@ class ecs_graph:
             print(dataframe)
             return dataframe
         else:
+            # TODO error logging to syslog (daemon)
             sys.exit("No dataframe!")
 
     def plot_dataframe(self, times = None):
+        # TODO multithreading
         dataframe = self.get_dataframe()
         if times:
             # set list of time scales to argument if specified
@@ -123,7 +126,6 @@ class ecs_graph:
 
 def main():
     gr = ecs_graph()
-    gr.get_dataframe()
     gr.plot_dataframe()
 
 if __name__ == '__main__':
