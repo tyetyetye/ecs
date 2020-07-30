@@ -36,6 +36,7 @@ class ecs_graph:
 
         }
         times = config['Graph']['TimeScales']
+        # by default read .ini for timescales
         self.df_t = times.split(', ')
 
     def get_dataframe(self):
@@ -57,16 +58,17 @@ class ecs_graph:
             dataframe = dataframe.set_index(['DateTime'])
             return dataframe
 
-    def plot_dataframe(self, times = None):
-        if times:
-            # set list of time scales to argument if specified
-            self.df_t = times.split(', ')
+    def plot_dataframe(self, timescales = None):
+        # use timescales if specified, otherwise use default read from .ini
+        if timescales:
+            times = timescales.split(', ')
+        else:
+            times = self.df_t
         df = self.get_dataframe()
-        thread_list = []
-        for t in self.df_t:
+        for t in times:
             for metric in self.metrics:
-                #self.plot_worker(df, t, metric)
-                p = multiprocessing.Process(target= self.plot_worker, args=(df, t, metric))
+                self.plot_worker(df, t, metric)
+                p = multiprocessing.Process(target = self.plot_worker, args=(df, t, metric))
                 p.start()
 
 
@@ -129,13 +131,13 @@ class ecs_graph:
         plt.grid(which='major', linewidth=3)
         plt.grid(which='minor', linewidth=1)
         plt.savefig('./images/' + t + '_' + metric + '.png')
-        #print('Created: ./images/' + t + '_' + metric + '.png...')
+        print('Created: ./images/' + t + '_' + metric + '.png...')
         #plt.show()
         plt.clf()
 
 def main():
     gr = ecs_graph()
-    gr.plot_dataframe()
+    gr.plot_dataframe(timescales = '30min')
 
 if __name__ == '__main__':
     main()
