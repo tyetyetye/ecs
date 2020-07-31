@@ -63,10 +63,6 @@ class environment:
                 database = self.db_database
             )
             cur = conn.cursor()
-	    # drop tables for testing purposes
-            #cur.execute('''DROP TABLE environment;''')
-            #cur.execute('''DROP TABLE onoff;''')
-            #cur.execute('''DROP TABLE device;''')
 
             # create device table
             cur.execute('''CREATE TABLE IF NOT EXISTS device
@@ -114,7 +110,6 @@ class environment:
         except Exception as e:
             self.err_l(e)
             return False
-
 
     def write(self):
         try:
