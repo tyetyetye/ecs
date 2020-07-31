@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as mtick
 import mariadb, configparser, sys
-import multiprocessing
+from multiprocessing import  Process
 
 class ecs_graph:
     def __init__(self):
@@ -33,14 +33,11 @@ class ecs_graph:
             "major_tick_size" : int(config['Graph']['XMajorTickSize']),
             "tick_label_rotation" : int(config['Graph']['TickRotation']),
             "x_tick_size" : int(config['Graph']['XTickSize'])
-
         }
-        times = config['Graph']['TimeScales']
-        # by default read .ini for timescales
-        self.df_t = times.split(', ')
 
     def get_dataframe(self):
         self.read_config()
+        # TODO exception control for connecting to db and receiving rows
         conn = mariadb.connect(
             database = self.db_d['database'],
             user = self.db_d['user'],
@@ -49,65 +46,83 @@ class ecs_graph:
             port = self.db_d['port']
         )
         cur = conn.cursor()
-        # TODO select LIMIT so whole database isn't pulled
-        cur.execute('select datetime, humidity, temp from environment')
+        cur.execute(self.get_sql_query())
         rows = cur.fetchall()
-        if rows:
-            dataframe = pd.DataFrame( [[ij for ij in i] for i in rows] )
-            dataframe.rename(columns={0: 'DateTime', 1: 'Humidity', 2: 'Temperature'}, inplace=True)
-            dataframe = dataframe.set_index(['DateTime'])
-            return dataframe
+        conn.close()
+        dataframe = pd.DataFrame( [[ij for ij in i] for i in rows] )
+        dataframe.rename(columns={0: 'DateTime', 1: 'Humidity', 2: 'Temperature'}, inplace=True)
+        dataframe = dataframe.set_index(['DateTime'])
+        return dataframe
 
-    def plot_dataframe(self, timescales = None):
-        # use timescales if specified, otherwise use default read from .ini
-        if timescales:
-            times = timescales.split(', ')
-        else:
-            times = self.df_t
+    def get_sql_query(self):
+        # Generate SQL query to return rows corresponding to the greatest timescale
+        temp = '\t'.join(self.times)
+        if 'M' in temp:
+            max_t = 'M'
+            sql_d = ' MONTH'
+        elif 'D' in temp:
+            max_t = 'D'
+            sql_d = ' DAY'
+        elif 'H' in temp:
+            max_t = 'H'
+            sql_d = ' HOUR'
+        elif 'min' in temp:
+            max_t = 'min'
+            sql_d = ' MINUTE'
+        max_n = 0
+        for time in self.times:
+            if max_t in time:
+                time_n = int(time.split(max_t)[0])
+                if time_n > max_n:
+                    max_n = time_n
+        return 'SELECT datetime, humidity, temp FROM environment WHERE datetime BETWEEN DATE_SUB(NOW(), INTERVAL ' + str(max_n) + sql_d \
+            + ') AND NOW();'
+
+    def plot_dataframe(self, timescales):
+        self.times = timescales.split(', ')
         df = self.get_dataframe()
-        for t in times:
+        for time in self.times:
             for metric in self.metrics:
-                self.plot_worker(df, t, metric)
-                p = multiprocessing.Process(target = self.plot_worker, args=(df, t, metric))
+                # multiprocessing
+                p = Process(target = self.plot_worker, args=(df, time, metric))
                 p.start()
 
-
-    def plot_worker(self, df, t, metric):
-        df = df.last(t)
+    def plot_worker(self, df, time, metric):
+        df = df.last(time)
         # set size of figure
         fig, ax = plt.subplots(figsize = (self.plot_d['size_x'], self.plot_d['size_y']), tight_layout=True)
         # set figure title
-        fig.suptitle(t + ' - ' + metric, fontsize=self.plot_d['sup_size'])
+        fig.suptitle(time + ' - ' + metric, fontsize=self.plot_d['sup_size'])
         # timescale formatting
-        if "D" in t:
+        if "D" in time:
             dayFmt = mdates.DateFormatter("%m-%d")
             hourFmt = mdates.DateFormatter("\n\n%-I:%M %p")
             ax.xaxis.set_major_locator(mdates.DayLocator())
             ax.xaxis.set_major_formatter(dayFmt)
             # format minor locator by number of days.  More days = less hour ticks
-            n = int(t.split("D")[0])
+            n = int(time.split("D")[0])
             ax.xaxis.set_minor_locator(mdates.HourLocator(byhour=range(0,24,n)))
             ax.xaxis.set_minor_formatter(hourFmt)
-        if "H" in t:
+        if "H" in time:
             hourFmt = mdates.DateFormatter("%-I %p")
             minuteFmt = mdates.DateFormatter("\n\n%-I:%M %p")
             ax.xaxis.set_major_locator(mdates.HourLocator())
             ax.xaxis.set_major_formatter(hourFmt)
-            n = int(t.split("H")[0])*2
+            n = int(time.split("H")[0])*2
             ax.xaxis.set_minor_locator(mdates.MinuteLocator(byminute=range(0,60,n)))
             ax.xaxis.set_minor_formatter(minuteFmt)
-        if "min" in t:
+        if "min" in time:
             minuteFmt = mdates.DateFormatter("%-I:%M %p")
             secondFmt = mdates.DateFormatter("\n\n%-I:%M:%S %p")
             # if minutes is too small minute/8 (for 8 major ticks) will equal 0
             n = 0
             m = 8
             while n == 0:
-                n = round(int(t.split("min")[0])/m)
+                n = round(int(time.split("min")[0])/m)
                 m = m/2
             ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=range(0,60,round(n))))
             ax.xaxis.set_major_formatter(minuteFmt)
-            n = int(t.split("min")[0])*2
+            n = int(time.split("min")[0])*2
             ax.xaxis.set_minor_locator(mdates.SecondLocator(bysecond=range(0,60,n)))
             ax.xaxis.set_minor_formatter(secondFmt)
         # color by metric
@@ -130,14 +145,14 @@ class ecs_graph:
         # show grid
         plt.grid(which='major', linewidth=3)
         plt.grid(which='minor', linewidth=1)
-        plt.savefig('./images/' + t + '_' + metric + '.png')
-        print('Created: ./images/' + t + '_' + metric + '.png...')
+        plt.savefig('./images/' + time + '_' + metric + '.png')
+        print('Created: ./images/' + time + '_' + metric + '.png...')
         #plt.show()
         plt.clf()
 
 def main():
     gr = ecs_graph()
-    gr.plot_dataframe(timescales = '30min')
+    gr.plot_dataframe('15min, 6H, 3D')
 
 if __name__ == '__main__':
     main()
