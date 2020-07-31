@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as mtick
 import mariadb, configparser, sys
-from multiprocessing import  Process
+from multiprocessing import Process
 
 class ecs_graph:
     def __init__(self):
