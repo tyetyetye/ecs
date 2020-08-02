@@ -3,13 +3,13 @@
 import RPi.GPIO as GPIO
 from pi_sht1x import SHT1x
 from datetime import datetime
-import configparser, time, mariadb, syslog
+import time, mariadb, syslog
+from config import Config
 
-config_file = '/opt/ecs/ecs.ini'
-
-class environment:
+class Environment:
     def __init__(self):
         self.log_d('Starting ECS Sensor Daemon...')
+        self.config = Config()
         self.read_config()
         self.db_chk()
         self.create_tables()
@@ -18,14 +18,14 @@ class environment:
 
     def db_chk(self):
         # Check if db connection is successful for logging purposes
-        self.log_d('Trying to connect to MariaDB database on ' + self.db_host + '...')
+        self.log_d('Trying to connect to MariaDB database on ' + self.host + '...')
         try:
             conn = mariadb.connect(
-                user = self.db_user,
-                password = self.db_pass,
-                host = self.db_host,
-                port = self.db_port,
-                database = self.db_database
+                database = self.database,
+                user = self.user,
+                password = self.password,
+                host = self.host,
+                port = self.port
             )
             self.log_d('Connection to MariaDB is succesful!')
         except mariadb.Error as e:
@@ -42,25 +42,25 @@ class environment:
         syslog.syslog(syslog.LOG_ERR, str(error))
 
     def read_config(self):
-        config = configparser.ConfigParser()
-        config.read(config_file)
-        self.sense_t = int(config['Sensor']['Rate'])
-        self.data_pin = int(config['Sensor']['DataPin'])
-        self.sck_pin = int(config['Sensor']['SckPin'])
-        self.db_database = config['Database']['Database']
-        self.db_user = config['Database']['DbUser']
-        self.db_pass = config['Database']['DbPass']
-        self.db_host = config['Database']['DbHost']
-        self.db_port= int(config['Database']['DbPort'])
+        c = self.config.sensor()
+        self.sense_t = c['sense_t']
+        self.data_pin = c['data_pin']
+        self.sck_pin = c['sck_pin']
+        c = self.config.database()
+        self.database = c['database']
+        self.user = c['user']
+        self.password = c['pass']
+        self.host = c['host']
+        self.port= c['port']
 
     def create_tables(self):
         try:
             conn = mariadb.connect(
-                user = self.db_user,
-                password = self.db_pass,
-                host = self.db_host,
-                port = self.db_port,
-                database = self.db_database
+                database = self.database,
+                user = self.user,
+                password = self.password,
+                host = self.host,
+                port = self.port
             )
             cur = conn.cursor()
 
@@ -106,6 +106,7 @@ class environment:
                 temp = sensor.read_temperature()
                 self.temp = sensor.temperature_fahrenheit
                 self.rh = sensor.read_humidity(temp)
+                print(self.temp, self.rh)
                 return True
         except Exception as e:
             self.err_l(e)
@@ -114,11 +115,11 @@ class environment:
     def write(self):
         try:
             conn = mariadb.connect(
-                user = self.db_user,
-                password = self.db_pass,
-                host = self.db_host,
-                port = self.db_port,
-                database = self.db_database
+                database = self.database,
+                user = self.user,
+                password = self.password,
+                host = self.host,
+                port = self.port
             )
             cur = conn.cursor()
             # format time without ms
@@ -134,7 +135,7 @@ class environment:
             self.err_l(e)
 
 def main():
-    env = environment()
+    env = Environment()
     while True:
         # re-read config to allow configuration changes without restarting daemon
         env.read_config()
