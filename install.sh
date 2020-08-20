@@ -1,14 +1,13 @@
 #!/bin/bash
 
-ECS_INSTALL_DIR="/opt/ecs"
+ECS_INSTALL_DIR="/opt/ecs_sensor"
+ECS_DAEMON="ecs_sensor"
 
 sudo systemctl daemon-reload
-sudo systemctl stop ecs_sensor
+sudo systemctl stop $ECS_DAEMON
 sudo cp sensor.py $ECS_INSTALL_DIR
-sudo cp plot.py $ECS_INSTALL_DIR
 sudo cp config.py $ECS_INSTALL_DIR
 sudo cp -r config $ECS_INSTALL_DIR
-sudo chmod 755 $ECS_INSTALL_DIR/sensor.py
-sudo chmod 755 $ECS_INSTALL_DIRopt/plot.py
-sudo chmod -R 755 $ECS_INSTALL_DIRopt/config
-sudo systemctl start ecs_sensor
+sudo chmod 644 $ECS_INSTALL_DIR/sensor.py
+sudo chmod -R 644 $ECS_INSTALL_DIR/config
+sudo systemctl start $ECS_DAEMON

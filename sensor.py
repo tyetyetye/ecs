@@ -107,7 +107,6 @@ class Environment:
                 self.temp = sensor.temperature_fahrenheit
                 self.rh = sensor.read_humidity(temp)
                 if (self.temp and self.rh) is not None:
-                    #print(self.temp, self.rh)
                     return True
         except Exception as e:
             self.err_l(e)
@@ -128,7 +127,6 @@ class Environment:
             time_now = time_now.strftime('%Y-%m-%d %H:%M:%S')
             # get environmental readings
             if(self.read()):
-                print(time_now, self.rh, self.temp)
                 cur.execute("INSERT INTO environment VALUES (?, ?, ?)", (time_now, self.rh, self.temp))
                 self.rh = None
                 self.temp = None
