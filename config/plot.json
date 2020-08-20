@@ -1,0 +1,37 @@
+{
+    "all": {
+        "tick_rotation": 30,
+        "humidity_color": "blue",
+        "temperature_color": "red",
+        "save_path": "./images/"
+    },
+    "large": {
+        "plot_line_width": 2,
+        "major_grid_line_width": 3,
+        "minor_grid_line_width": 1,
+        "plot_size_x": 16,
+        "plot_size_y": 12,
+        "sup_title_size": 28,
+        "y_tick_label_size": 12,
+        "x_major_tick_label_size": 16,
+        "x_minor_tick_label_size": 10,
+        "x_label_size": 20,
+        "y_label_size": 20,
+        "x_label_pad": 12,
+        "y_label_pad": 12
+    },
+    "thumb": {
+        "plot_line_width": 1,
+        "major_grid_line_width": 1,
+        "minor_grid_line_width": 1,
+        "plot_size_x": 4,
+        "plot_size_y": 3,
+        "sup_title_size": 14,
+        "y_tick_label_size": 6,
+        "x_major_tick_label_size": 6,
+        "x_label_size": 10,
+        "y_label_size": 10,
+        "x_label_pad": 6,
+        "y_label_pad": 6
+    }        
+}

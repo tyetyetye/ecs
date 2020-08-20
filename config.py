@@ -3,7 +3,7 @@ import json
 
 class Config:
     def __init__(self):
-        self.config_dir = '/opt/ecs/config'
+        self.config_dir = 'config'
 
     def read_config(self, file):
         path = self.config_dir + '/' + file
@@ -18,4 +18,4 @@ class Config:
         return self.read_config('sensor.json')
 
     def plot(self):
-        return self.read_config('graph.json')
+        return self.read_config('plot.json')
